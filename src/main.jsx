@@ -4,7 +4,11 @@ import App from "./App";
 import "./index.css";
 
 import "@rainbow-me/rainbowkit/styles.css";
-import { getDefaultWallets, RainbowKitProvider } from "@rainbow-me/rainbowkit";
+import {
+  getDefaultWallets,
+  RainbowKitProvider,
+  midnightTheme,
+} from "@rainbow-me/rainbowkit";
 import { configureChains, createConfig, WagmiConfig } from "wagmi";
 import { mainnet, polygon, optimism, arbitrum } from "wagmi/chains";
 import { alchemyProvider } from "wagmi/providers/alchemy";
@@ -34,7 +38,7 @@ const wagmiConfig = createConfig({
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <WagmiConfig config={wagmiConfig}>
-      <RainbowKitProvider chains={chains}>
+      <RainbowKitProvider chains={chains} theme={midnightTheme()}>
         <App />
       </RainbowKitProvider>
     </WagmiConfig>

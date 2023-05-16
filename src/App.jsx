@@ -19,6 +19,7 @@ function App() {
   const [results, setResults] = useState([]);
   const [hasQueried, setHasQueried] = useState(false);
   const [tokenDataObjects, setTokenDataObjects] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const { address, status, isConnected } = useAccount();
 
@@ -32,28 +33,38 @@ function App() {
   console.log("isConnected", isConnected);
 
   async function getTokenBalance() {
-    const config = {
-      apiKey: import.meta.env.VITE_ALCHEMY_API_KEY,
-      network: Network.ETH_MAINNET,
-    };
+    try {
+      const config = {
+        apiKey: import.meta.env.VITE_ALCHEMY_API_KEY,
+        network: Network.ETH_MAINNET,
+      };
 
-    const alchemy = new Alchemy(config);
-    const data = await alchemy.core.getTokenBalances(address || userAddress);
+      const alchemy = new Alchemy(config);
+      const data = await alchemy.core.getTokenBalances(address || userAddress);
+      setLoading(true);
+      setResults(data);
 
-    setResults(data);
+      const tokenDataPromises = [];
 
-    const tokenDataPromises = [];
+      for (let i = 0; i < data.tokenBalances.length; i++) {
+        const tokenData = alchemy.core.getTokenMetadata(
+          data.tokenBalances[i].contractAddress
+        );
+        tokenDataPromises.push(tokenData);
+      }
 
-    for (let i = 0; i < data.tokenBalances.length; i++) {
-      const tokenData = alchemy.core.getTokenMetadata(
-        data.tokenBalances[i].contractAddress
-      );
-      tokenDataPromises.push(tokenData);
+      setTokenDataObjects(await Promise.all(tokenDataPromises));
+      setHasQueried(true);
+    } catch (err) {
+      console.error(err);
+      // console.log(err); can be used as well for catching errors
+    } finally {
+      //finally is a block of code that's executed after a try block, regardless of whether an exception was thrown or not.
+      setLoading(false);
     }
-
-    setTokenDataObjects(await Promise.all(tokenDataPromises));
-    setHasQueried(true);
   }
+  console.log("Results", setResults);
+  console.log("tokenDataObjects", tokenDataObjects);
 
   const handleInputChange = ({ target }) => {
     setUserAddress(target.value);
@@ -96,12 +107,17 @@ function App() {
           bgColor="white"
           fontSize={24}
         />
-        <Button fontSize={20} onClick={getTokenBalance} mt={36} bgColor="blue">
-          Check ERC-20 Token Balances
+        <Button
+          fontSize={20}
+          onClick={getTokenBalance}
+          mt={36}
+          bgColor="#1f1f1f"
+          disabled={loading}
+        >
+          {loading ? "Loading..." : "Check ERC-20 Token Balances"}
         </Button>
 
         <Heading my={36}>ERC-20 token balances:</Heading>
-
         {hasQueried ? (
           <SimpleGrid w={"90vw"} columns={4} spacing={24}>
             {results.tokenBalances.map((e, i) => {
@@ -110,20 +126,22 @@ function App() {
                   key={i}
                   flexDir={"column"}
                   color="white"
-                  bg="blue"
-                  w={"20vw"}
+                  bg="#1f1f1f"
+                  w={"15vw"}
                 >
-                  <Box>
-                    <b>Symbol:</b> ${tokenDataObjects[i].symbol}&nbsp;
-                  </Box>
-                  <Box>
+                  <Center>
+                    <Image w="40px" src={tokenDataObjects[i].logo} />
+                  </Center>
+                  <Center>
+                    <b>Symbol:</b> {tokenDataObjects[i].symbol}&nbsp;
+                  </Center>
+                  <Center>
                     <b>Balance:</b>&nbsp;
                     {Utils.formatUnits(
                       e.tokenBalance,
                       tokenDataObjects[i].decimals
                     )}
-                  </Box>
-                  <Image src={tokenDataObjects[i].logo} />
+                  </Center>
                 </Flex>
               );
             })}
